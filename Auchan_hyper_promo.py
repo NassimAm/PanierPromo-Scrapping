@@ -19,7 +19,18 @@ nb_page = 0
 #Changez ce paramètres selon la mémoire de votre machine
 nb_max_pages = 3
  
-url = "https://www.auchan.fr/boutique/promos"
+urls = [
+    "https://www.auchan.fr/boutique/promos/oeufs-produits-laitiers/ca-n01",
+    "https://www.auchan.fr/boutique/promos/boucherie-volaille-poissonnerie/ca-n02",
+    "https://www.auchan.fr/boutique/promos/charcuterie-traiteur-pain/ca-n12",
+    "https://www.auchan.fr/boutique/promos/fruits-legumes/ca-n03",
+    "https://www.auchan.fr/boutique/promos/surgeles/ca-n04",
+    "https://www.auchan.fr/boutique/promos/epicerie-sucree/ca-n05",
+    "https://www.auchan.fr/boutique/promos/epicerie-salee/ca-n06",
+    "https://www.auchan.fr/boutique/promos/boissons-sans-alcool/ca-n13",
+    "https://www.auchan.fr/boutique/promos/hygiene-beaute-parapharmacie/ca-n09",
+    "https://www.auchan.fr/boutique/promos/entretien-maison/ca-n10"
+]
 
 magasins_ref =[
     "AUCHAN_HYPER1",
@@ -42,7 +53,7 @@ def checkIfHyper(name):
     return not("Supermarché" in name)
 
 first = True
-driver.get(url)
+driver.get(urls[0])
 
 try :
     if first:
@@ -91,84 +102,92 @@ finally:
                 first = False
                 
             if found_magasin:
-                driver.implicitly_wait(3)
-                WebDriverWait(driver, 15).until(EC.presence_of_element_located((By.CLASS_NAME , 'product-price')))
-                #Navigating pages =======================================================================================================
-                searching = True
-                sameUrl = True
-                nb_page = 0
-                nb_page_cpt = 1
                 data = []
-
-                while sameUrl:
-                    if nb_page != 0:
-                        driver.get(url+'?page='+str(nb_page+1))
+                for url_index in range(len(urls)):
+                    try:
+                        if url_index == 0:
+                            driver.refresh()
+                        else:
+                            driver.get(urls[url_index])
+                        driver.implicitly_wait(3)
+                        WebDriverWait(driver, 15).until(EC.presence_of_element_located((By.CLASS_NAME , 'product-price')))
+                        #Navigating pages =======================================================================================================
                         searching = True
-                    while searching:
-                        try:
-                            button_next = WebDriverWait(driver,5).until(EC.presence_of_element_located((By.CSS_SELECTOR,"nav.pagination-main__container a.pagination-adjacent__link i.icon-arrowRight")))
-                            footer = driver.find_element(By.ID,"cms-slot-footerSlot")
-                            driver.execute_script("window.scrollTo(0, {0})".format(footer.location["y"]-600))
-                            if "?page=" in driver.current_url:
-                                nb_page = int(driver.current_url.split('?page=',1)[1])
-                            else:
-                                nb_page = 1
-                            if nb_page>=nb_max_pages*nb_page_cpt:
-                                searching = False
-                                nb_page_cpt += 1
-                        except Exception as e:
-                            searching = False
-                            sameUrl = False
-                            
-                    #Iterating in products ==============================================================================================================
-                    #Save the html page ==========================================
-                    WebDriverWait(driver,20).until(EC.presence_of_element_located((By.CLASS_NAME , 'product-price')))
-                    html = driver.page_source
-                    #open the page with beautifulSoup
-                    soup = BeautifulSoup(html, "html.parser")
-                    items = soup.find_all(class_="list__item")
-                    
-                    links = []
-                    infos = []
-                    #iterate in products
-                    cpt = 0
-                    for item in items:
-                        try:
-                            id_link = "https://www.auchan.fr"+item.find(class_="product-thumbnail__details-wrapper")["href"]
-                            promoRef = []
-                            promo = ""
-                            productHeader = "vide"
-                            # product-thumbnail__commercials
-                            try :
-                                # promoRef = item.find_all(class_='product-discount-label')
-                                promoRef = []
-                            finally :
-                                try :
-                                    promoRef += item.find_all(class_='product-discount')
-                                    for onePromo in promoRef:
-                                        promo += onePromo.text + " | "
+                        sameUrl = True
+                        nb_page = 0
+                        nb_page_cpt = 1
+
+                        while sameUrl:
+                            if nb_page != 0:
+                                driver.get(urls[url_index]+'?page='+str(nb_page+1))
+                                searching = True
+                            while searching:
+                                try:
+                                    button_next = WebDriverWait(driver,5).until(EC.presence_of_element_located((By.CSS_SELECTOR,"nav.pagination-main__container a.pagination-adjacent__link i.icon-arrowRight")))
+                                    footer = driver.find_element(By.ID,"cms-slot-footerSlot")
+                                    driver.execute_script("window.scrollTo(0, {0})".format(footer.location["y"]-600))
+                                    if "?page=" in driver.current_url:
+                                        nb_page = int(driver.current_url.split('?page=',1)[1])
+                                    else:
+                                        nb_page = 1
+                                    if nb_page>=nb_max_pages*nb_page_cpt:
+                                        searching = False
+                                        nb_page_cpt += 1
+                                except Exception as e:
+                                    searching = False
+                                    sameUrl = False
                                     
-                                finally:
-                                    if len(promo)>=3:
-                                        promo = promo[:-3]
+                            #Iterating in products ==============================================================================================================
+                            #Save the html page ==========================================
+                            WebDriverWait(driver,20).until(EC.presence_of_element_located((By.CLASS_NAME , 'product-price')))
+                            html = driver.page_source
+                            #open the page with beautifulSoup
+                            soup = BeautifulSoup(html, "html.parser")
+                            items = soup.find_all(class_="list__item")
+                            
+                            links = []
+                            infos = []
+                            #iterate in products
+                            cpt = 0
+                            for item in items:
+                                try:
+                                    id_link = "https://www.auchan.fr"+item.find(class_="product-thumbnail__details-wrapper")["href"]
+                                    promoRef = []
+                                    promo = ""
+                                    productHeader = "vide"
+                                    # product-thumbnail__commercials
                                     try :
-                                        productHeader = item.find(class_='product-thumbnail__header').text
-                                    finally:
-                                        price = item.find(class_='product-price').text
-                                        cpt+=1
-                                        infos.append([promo, price])
-                                        
-                                        links.append(id_link)
-                        except Exception as e:
-                            pass
+                                        # promoRef = item.find_all(class_='product-discount-label')
+                                        promoRef = []
+                                    finally :
+                                        try :
+                                            promoRef += item.find_all(class_='product-discount')
+                                            for onePromo in promoRef:
+                                                promo += onePromo.text + " | "
+                                            
+                                        finally:
+                                            if len(promo)>=3:
+                                                promo = promo[:-3]
+                                            try :
+                                                productHeader = item.find(class_='product-thumbnail__header').text
+                                            finally:
+                                                price = item.find(class_='product-price').text
+                                                cpt+=1
+                                                infos.append([promo, price])
+                                                
+                                                links.append(id_link)
+                                except Exception as e:
+                                    pass
 
-                    with concurrent.futures.ThreadPoolExecutor() as executor:
-                        id_product = executor.map(get_link, links)
-                    id_product=list(id_product)
+                            with concurrent.futures.ThreadPoolExecutor() as executor:
+                                id_product = executor.map(get_link, links)
+                            id_product=list(id_product)
 
-                    for i in range(0, len(id_product)):
-                        infos[i].append(id_product[i][0])
-                    data += infos
+                            for i in range(0, len(id_product)):
+                                infos[i].append(id_product[i][0])
+                            data += infos
+                    except:
+                        pass
 
                 fData = formatAuchanPromotions(data)
                                       
